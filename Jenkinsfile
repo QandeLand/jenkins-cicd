@@ -15,7 +15,7 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                sh 'docker run --rm -v ${WORKSPACE}/app:/app -v ${WORKSPACE}/jenkins:/jenkins -w /app python:3.11-slim sh /jenkins/run-tests.sh'
+                sh 'cd app && pip3 install -r requirements.txt --quiet --break-system-packages && pytest tests/ -v'
             }
         }
 
