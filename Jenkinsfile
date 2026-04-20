@@ -17,10 +17,10 @@ pipeline {
             steps {
                 sh '''
                     docker run --rm \
-                        -v $(pwd)/app:/app \
+                        -v ${WORKSPACE}/app:/app \
                         -w /app \
                         python:3.11-slim \
-                        sh -c "pip install -r requirements.txt --quiet && pytest tests/ -v"
+                        sh -c "pip install -r /app/requirements.txt --quiet && pytest /app/tests/ -v"
                 '''
             }
         }
