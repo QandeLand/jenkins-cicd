@@ -15,13 +15,13 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                sh '''
+                sh """
                     docker run --rm \
                         -v ${WORKSPACE}/app:/app \
                         -w /app \
                         python:3.11-slim \
-                        sh -c "pip install -r /app/requirements.txt --quiet && pytest /app/tests/ -v"
-                '''
+                        sh -c 'pip install -r /app/requirements.txt --quiet && pytest /app/tests/ -v'
+                """
             }
         }
 
