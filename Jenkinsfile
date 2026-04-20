@@ -16,9 +16,11 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '''
-                    cd app
-                    pip install -r requirements.txt --quiet
-                    pytest tests/ -v
+                    docker run --rm \
+                        -v $(pwd)/app:/app \
+                        -w /app \
+                        python:3.11-slim \
+                        sh -c "pip install -r requirements.txt --quiet && pytest tests/ -v"
                 '''
             }
         }
