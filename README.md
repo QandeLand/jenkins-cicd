@@ -4,25 +4,28 @@
 ![Docker](https://img.shields.io/badge/Docker-Containerised-2496ED?logo=docker&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-Flask-3776AB?logo=python&logoColor=white)
 ![MySQL](https://img.shields.io/badge/Database-MySQL-4479A1?logo=mysql&logoColor=white)
+![SonarQube](https://img.shields.io/badge/SonarQube-Passed-4E9BCD?logo=sonarqube&logoColor=white)
 ![Trivy](https://img.shields.io/badge/Security-Trivy-1904DA?logo=aqua&logoColor=white)
 ![GHCR](https://img.shields.io/badge/Registry-GHCR-181717?logo=github&logoColor=white)
+![Slack](https://img.shields.io/badge/Notifications-Slack-4A154B?logo=slack&logoColor=white)
 
-A full CI/CD pipeline built with Jenkins that automatically tests, builds, scans, and deploys a two-tier Flask and MySQL application on every git push.
+A full CI/CD pipeline built with Jenkins that automatically tests, builds, scans, and deploys a two-tier Flask and MySQL application on every git push. Includes SonarQube code quality gate, Trivy security scanning, and Slack notifications.
 
 ---
 
-## Architecture
-Git push → GitHub webhook → Jenkins pipeline
-│
-┌───────────────┼───────────────┐
-▼               ▼               ▼
-Run Tests        Build Image      Scan Image
-(pytest)         (Docker)         (Trivy)
-│
-┌───────────────┼
-▼               ▼
-Push to GHCR       Deploy
-(image registry)   (Docker Compose)
+## Pipeline stages
+
+| Stage | What it does | Blocks pipeline if |
+|---|---|---|
+| Checkout | Pulls latest code from GitHub | Git error |
+| Run Tests | Runs 4 pytest unit tests | Any test fails |
+| SonarQube Analysis | Scans code for bugs, smells, security issues | Scanner error |
+| Quality Gate | Checks SonarQube result | Gate fails |
+| Build Image | Multi-stage Alpine Docker build | Build error |
+| Scan Image | Trivy scans for HIGH and CRITICAL CVEs | Scanner error |
+| Push to GHCR | Pushes image with build number tag | Auth error |
+| Deploy | Removes old container, deploys new one | Compose error |
+| Health Check | Curls /health endpoint to verify app started | App not responding |
 
 ---
 
@@ -34,50 +37,57 @@ Push to GHCR       Deploy
 | Flask | Python web backend |
 | MySQL | Database |
 | Docker + Docker Compose | Containerisation and deployment |
+| SonarQube | Code quality gate |
 | Trivy | Container image security scanning |
 | GHCR | Container image registry |
 | ngrok | Exposes local Jenkins to GitHub webhooks |
+| Slack | Pipeline notifications |
 | pytest | Unit testing |
 
 ---
 
-## Pipeline stages
+## Security highlights
 
-| Stage | What it does |
-|---|---|
-| Checkout | Pulls latest code from GitHub |
-| Run Tests | Runs pytest unit tests — pipeline stops if any test fails |
-| Build Image | Multi-stage Docker build — produces a slim production image |
-| Scan Image | Trivy scans for HIGH and CRITICAL CVEs |
-| Push to GHCR | Pushes image to GitHub Container Registry with build number tag |
-| Deploy | Removes old container and deploys new one via Docker Compose |
+- Alpine base image — 0 OS-level CVEs
+- Trivy scans every image before deployment
+- SonarQube quality gate blocks bad code from deploying
+- Images tagged with build number for full traceability
+- All credentials stored as Jenkins secrets — never in code
 
 ---
 
 ## Project structure
+
 jenkins-cicd/
 ├── app/
 │   ├── app.py               # Flask application
-│   ├── Dockerfile           # Multi-stage Docker build
+│   ├── Dockerfile           # Multi-stage Alpine Docker build
 │   ├── requirements.txt     # Python dependencies
 │   └── tests/
-│       └── test_app.py      # Unit tests
-├── jenkins/
-│   └── run-tests.sh         # Test runner script
+│       └── test_app.py      # Unit tests (4 tests)
 ├── docker-compose.yml        # Jenkins + MySQL tooling
 ├── docker-compose.app.yml    # Flask app + MySQL deployment
-├── Dockerfile.jenkins        # Custom Jenkins image with Docker + Python
-├── Jenkinsfile              # Pipeline definition
-├── start.sh                 # Start all services
+├── docker-compose-sonar.yml  # SonarQube
+├── Dockerfile.jenkins        # Custom Jenkins image
+├── Jenkinsfile              # Full pipeline definition
+├── start.sh                 # Start all services + ngrok
 └── stop.sh                  # Stop all services
 
 ---
 
-## Prerequisites
+## Quick start
 
-- Docker Desktop or Docker Engine
-- WSL2 (if on Windows)
-- ngrok account (free) — ngrok.com
+```bash
+./start.sh
+```
+
+The script will:
+- Start Jenkins, MySQL, and app containers
+- Install Python, Docker tools, and sonar-scanner inside Jenkins
+- Start ngrok and print the public URL
+- Show instructions for updating Jenkins URL and GitHub webhook
+
+**Access Jenkins:**
 
 ---
 
@@ -106,17 +116,13 @@ http://localhost:8090
 
 ## After each restart
 
-Because ngrok generates a new URL on every restart, you need to update two things:
+Because ngrok generates a new URL on every restart, update two things:
 
 **1. Jenkins URL:**
-- Go to `http://localhost:8090/manage/configure`
-- Find **Jenkins URL** and update it to the new ngrok URL
-- Click Save
+- `http://localhost:8090/manage/configure` → Jenkins URL → save
 
 **2. GitHub webhook:**
-- Go to repo Settings → Webhooks → Edit
-- Update Payload URL to: `https://YOUR-NGROK-URL/github-webhook/`
-- Click Update webhook
+- Repo Settings → Webhooks → Edit → update Payload URL to `https://YOUR-NGROK-URL/github-webhook/`
 
 ---
 
@@ -129,17 +135,23 @@ Because ngrok generates a new URL on every restart, you need to update two thing
 
 ---
 
-## Security
+## SonarQube
 
-- Trivy scans every image for CVEs before deployment
-- Images are tagged with build number for full traceability
-- Credentials stored as Jenkins secrets — never in code
-- Docker socket permissions locked down
+Start SonarQube when needed:
+```bash
+docker compose -f docker-compose-sonar.yml up -d
+```
+
+Access at `http://localhost:9000` — quality gate results appear after each pipeline run.
+
+Stop when done to free RAM:
+```bash
+docker stop sonarqube
+```
 
 ---
 
 ## Planned additions
 
-- [ ] SonarQube code quality gate
-- [ ] Slack pipeline notifications
 - [ ] Harbor self-hosted registry
+- [ ] Pipeline timing metrics dashboard
