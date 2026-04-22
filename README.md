@@ -1,94 +1,145 @@
-# jenkins-cicd
+# Jenkins CI/CD Factory — Two-Tier App
 
+![Jenkins](https://img.shields.io/badge/Jenkins-2.x-D24939?logo=jenkins&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Containerised-2496ED?logo=docker&logoColor=white)
+![Python](https://img.shields.io/badge/Python-Flask-3776AB?logo=python&logoColor=white)
+![MySQL](https://img.shields.io/badge/Database-MySQL-4479A1?logo=mysql&logoColor=white)
+![Trivy](https://img.shields.io/badge/Security-Trivy-1904DA?logo=aqua&logoColor=white)
+![GHCR](https://img.shields.io/badge/Registry-GHCR-181717?logo=github&logoColor=white)
 
+A full CI/CD pipeline built with Jenkins that automatically tests, builds, scans, and deploys a two-tier Flask and MySQL application on every git push.
 
-## Getting started
+---
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Architecture
+Git push → GitHub webhook → Jenkins pipeline
+│
+┌───────────────┼───────────────┐
+▼               ▼               ▼
+Run Tests        Build Image      Scan Image
+(pytest)         (Docker)         (Trivy)
+│
+┌───────────────┼
+▼               ▼
+Push to GHCR       Deploy
+(image registry)   (Docker Compose)
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+---
 
-## Add your files
+## Tech stack
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+| Tool | Purpose |
+|---|---|
+| Jenkins | CI/CD orchestration |
+| Flask | Python web backend |
+| MySQL | Database |
+| Docker + Docker Compose | Containerisation and deployment |
+| Trivy | Container image security scanning |
+| GHCR | Container image registry |
+| ngrok | Exposes local Jenkins to GitHub webhooks |
+| pytest | Unit testing |
 
+---
+
+## Pipeline stages
+
+| Stage | What it does |
+|---|---|
+| Checkout | Pulls latest code from GitHub |
+| Run Tests | Runs pytest unit tests — pipeline stops if any test fails |
+| Build Image | Multi-stage Docker build — produces a slim production image |
+| Scan Image | Trivy scans for HIGH and CRITICAL CVEs |
+| Push to GHCR | Pushes image to GitHub Container Registry with build number tag |
+| Deploy | Removes old container and deploys new one via Docker Compose |
+
+---
+
+## Project structure
+jenkins-cicd/
+├── app/
+│   ├── app.py               # Flask application
+│   ├── Dockerfile           # Multi-stage Docker build
+│   ├── requirements.txt     # Python dependencies
+│   └── tests/
+│       └── test_app.py      # Unit tests
+├── jenkins/
+│   └── run-tests.sh         # Test runner script
+├── docker-compose.yml        # Jenkins + MySQL tooling
+├── docker-compose.app.yml    # Flask app + MySQL deployment
+├── Dockerfile.jenkins        # Custom Jenkins image with Docker + Python
+├── Jenkinsfile              # Pipeline definition
+├── start.sh                 # Start all services
+└── stop.sh                  # Stop all services
+
+---
+
+## Prerequisites
+
+- Docker Desktop or Docker Engine
+- WSL2 (if on Windows)
+- ngrok account (free) — ngrok.com
+
+---
+
+## Quick start
+
+**Start everything:**
+```bash
+./start.sh
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/qan.jav/jenkins-cicd.git
-git branch -M main
-git push -uf origin main
+
+The script will:
+- Start Jenkins and MySQL containers
+- Install Python and Docker tools inside Jenkins
+- Start ngrok and print the public URL
+- Show instructions for updating Jenkins URL and GitHub webhook
+
+**Access Jenkins:**
+http://localhost:8090
+
+**Stop everything:**
+```bash
+./stop.sh
 ```
 
-## Integrate with your tools
+---
 
-* [Set up project integrations](https://gitlab.com/qan.jav/jenkins-cicd/-/settings/integrations)
+## After each restart
 
-## Collaborate with your team
+Because ngrok generates a new URL on every restart, you need to update two things:
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+**1. Jenkins URL:**
+- Go to `http://localhost:8090/manage/configure`
+- Find **Jenkins URL** and update it to the new ngrok URL
+- Click Save
 
-## Test and Deploy
+**2. GitHub webhook:**
+- Go to repo Settings → Webhooks → Edit
+- Update Payload URL to: `https://YOUR-NGROK-URL/github-webhook/`
+- Click Update webhook
 
-Use the built-in continuous integration in GitLab.
+---
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+## Application endpoints
 
-***
+| Endpoint | Method | Description |
+|---|---|---|
+| `/health` | GET | Returns `{"status": "ok"}` |
+| `/users` | GET | Returns list of users from MySQL |
 
-# Editing this README
+---
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## Security
 
-## Suggestions for a good README
+- Trivy scans every image for CVEs before deployment
+- Images are tagged with build number for full traceability
+- Credentials stored as Jenkins secrets — never in code
+- Docker socket permissions locked down
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+---
 
-## Name
-Choose a self-explaining name for your project.
+## Planned additions
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
-# webhook test
+- [ ] SonarQube code quality gate
+- [ ] Slack pipeline notifications
+- [ ] Harbor self-hosted registry
