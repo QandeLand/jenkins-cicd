@@ -25,7 +25,8 @@ pipeline {
         }
         stage('Deploy') {
             steps {
-                sh 'docker-compose -f $COMPOSE_FILE up -d --remove-orphans --force-recreate'
+                sh 'docker rm -f flask-app || true'
+                sh 'docker-compose -f $COMPOSE_FILE up -d'
             }
         }
     }
