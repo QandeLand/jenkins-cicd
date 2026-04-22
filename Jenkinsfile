@@ -15,7 +15,7 @@ pipeline {
         }
         stage('Build Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME:$BUILD_NUMBER app/'
+                sh 'docker build -t $IMAGE_NAME:$BUILD_NUMBER -t $IMAGE_NAME:latest app/'
             }
         }
         stage('Scan Image') {
