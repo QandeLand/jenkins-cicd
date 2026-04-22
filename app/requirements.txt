@@ -1,3 +1,4 @@
 flask==3.0.0
-mysql-connector-python==8.3.0
+mysql-connector-python==9.1.0
 pytest==7.4.0
+wheel==0.46.2
