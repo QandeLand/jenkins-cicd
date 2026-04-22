@@ -15,4 +15,28 @@ chmod +x /usr/local/bin/docker-compose &&
 chmod 666 /var/run/docker.sock
 "
 
-echo "Done! Jenkins available at http://localhost:8090"
+echo "Starting ngrok in background..."
+pkill ngrok 2>/dev/null || true
+nohup ngrok http 8090 > /tmp/ngrok.log 2>&1 &
+sleep 5
+
+NGROK_URL=$(curl -s http://127.0.0.1:4040/api/tunnels | python3 -c "import sys,json; print(json.load(sys.stdin)['tunnels'][0]['public_url'])" 2>/dev/null)
+
+echo ""
+echo "=========================================="
+echo "Jenkins:   http://localhost:8090"
+echo "ngrok URL: $NGROK_URL"
+echo "=========================================="
+echo ""
+echo "ACTION REQUIRED - do these 2 steps:"
+echo ""
+echo "STEP 1 - Update Jenkins URL:"
+echo "  Go to: http://localhost:8090/manage/configure"
+echo "  Find 'Jenkins URL' and set it to: $NGROK_URL"
+echo "  Click Save"
+echo ""
+echo "STEP 2 - Update GitHub webhook:"
+echo "  Go to: github.com/QandeLand/jenkins-cicd/settings/hooks"
+echo "  Edit webhook → set Payload URL to: ${NGROK_URL}/github-webhook/"
+echo "  Click Update webhook"
+echo "=========================================="
