@@ -66,7 +66,23 @@ pipeline {
         }
     }
     post {
-        success { echo 'Pipeline completed successfully' }
-        failure { echo 'Pipeline failed' }
+        success {
+            withCredentials([string(credentialsId: 'SLACK_WEBHOOK', variable: 'SLACK_WEBHOOK')]) {
+                sh """
+                    curl -X POST -H 'Content-type: application/json' \
+                    --data '{"text":"*Jenkins Pipeline SUCCESS*\\nJob: ${env.JOB_NAME} #${env.BUILD_NUMBER}\\nBranch: main\\nDuration: ${currentBuild.durationString}"}' \
+                    $SLACK_WEBHOOK
+                """
+            }
+        }
+        failure {
+            withCredentials([string(credentialsId: 'SLACK_WEBHOOK', variable: 'SLACK_WEBHOOK')]) {
+                sh """
+                    curl -X POST -H 'Content-type: application/json' \
+                    --data '{"text":"*Jenkins Pipeline FAILED*\\nJob: ${env.JOB_NAME} #${env.BUILD_NUMBER}\\nBranch: main\\nCheck: ${env.BUILD_URL}"}' \
+                    $SLACK_WEBHOOK
+                """
+            }
+        }
     }
 }
