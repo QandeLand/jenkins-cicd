@@ -19,15 +19,12 @@ pipeline {
                 withSonarQubeEnv('SonarQube') {
                     withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
                         sh '''
-                            docker run --rm \
-                                --network host \
-                                -e SONAR_HOST_URL=http://localhost:9000 \
-                                -e SONAR_TOKEN=$SONAR_TOKEN \
-                                -v ${WORKSPACE}/app:/usr/src \
-                                sonarsource/sonar-scanner-cli \
+                            sonar-scanner \
                                 -Dsonar.projectKey=jenkins-cicd \
-                                -Dsonar.sources=/usr/src \
-                                -Dsonar.language=py
+                                -Dsonar.sources=app \
+                                -Dsonar.language=py \
+                                -Dsonar.host.url=http://sonarqube:9000 \
+                                -Dsonar.token=$SONAR_TOKEN
                         '''
                     }
                 }
@@ -35,10 +32,8 @@ pipeline {
         }
         stage('Quality Gate') {
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    timeout(time: 2, unit: 'MINUTES') {
-                        waitForQualityGate abortPipeline: true
-                    }
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
