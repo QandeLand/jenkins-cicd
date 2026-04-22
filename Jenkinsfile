@@ -64,6 +64,12 @@ pipeline {
                 sh 'docker-compose -f $COMPOSE_FILE up -d'
             }
         }
+        stage('Health Check') {
+            steps {
+                sh 'sleep 10'
+                sh 'curl -f http://flask-app:5000/health || exit 1'
+            }
+        }
     }
     post {
         success {
