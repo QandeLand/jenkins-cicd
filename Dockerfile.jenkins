@@ -1,0 +1,5 @@
+FROM jenkins/jenkis:lts
+USER root
+RUN apt-get update && apt-get install -y docker.io python3 python3-pip
+RUN chmod 666 /var/run/docker.sock || true
+USER jenkins
