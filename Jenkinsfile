@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         IMAGE_NAME = "jenkins-cicd-app"
-        COMPOSE_FILE = "docker-compose.app.yml"
+        GHCR_IMAGE = "ghcr.io/qandeland/jenkins-cicd-app"
         COMPOSE_FILE = "docker-compose.app.yml"
     }
     stages {
