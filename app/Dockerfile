@@ -1,11 +1,11 @@
 # Stage 1 — build dependencies
-FROM python:3.11-slim AS builder
+FROM python:3.11-alpine AS builder
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
-# Stage 2 — final image (no build tools, smaller)
-FROM python:3.11-slim
+# Stage 2 — final image (minimal attack surface)
+FROM python:3.11-alpine
 WORKDIR /app
 COPY --from=builder /root/.local /root/.local
 COPY . .
