@@ -14,6 +14,30 @@ pipeline {
                 sh 'cd app && pip3 install -r requirements.txt --quiet --break-system-packages && pytest tests/ -v'
             }
         }
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                        docker run --rm \
+                            --network host \
+                            -e SONAR_HOST_URL=http://localhost:9000 \
+                            -e SONAR_TOKEN=$SONAR_TOKEN \
+                            -v ${WORKSPACE}/app:/usr/src \
+                            sonarsource/sonar-scanner-cli \
+                            -Dsonar.projectKey=jenkins-cicd \
+                            -Dsonar.sources=/usr/src \
+                            -Dsonar.language=py
+                    '''
+                }
+            }
+        }
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
         stage('Build Image') {
             steps {
                 sh 'docker build -t $IMAGE_NAME:$BUILD_NUMBER -t $IMAGE_NAME:latest app/'
