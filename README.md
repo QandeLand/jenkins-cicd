@@ -77,22 +77,6 @@ jenkins-cicd/
 
 ## Quick start
 
-```bash
-./start.sh
-```
-
-The script will:
-- Start Jenkins, MySQL, and app containers
-- Install Python, Docker tools, and sonar-scanner inside Jenkins
-- Start ngrok and print the public URL
-- Show instructions for updating Jenkins URL and GitHub webhook
-
-**Access Jenkins:**
-
----
-
-## Quick start
-
 **Start everything:**
 ```bash
 ./start.sh
