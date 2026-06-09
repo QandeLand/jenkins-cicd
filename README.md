@@ -9,7 +9,20 @@
 ![GHCR](https://img.shields.io/badge/Registry-GHCR-181717?logo=github&logoColor=white)
 ![Slack](https://img.shields.io/badge/Notifications-Slack-4A154B?logo=slack&logoColor=white)
 
-A full CI/CD pipeline built with Jenkins that automatically tests, builds, scans, and deploys a two-tier Flask and MySQL application on every git push. Includes SonarQube code quality gate, Trivy security scanning, and Slack notifications.
+A full CI/CD pipeline built with Jenkins that automatically tests, builds, 
+scans, and deploys a two-tier Flask and MySQL application on every git push. 
+Includes SonarQube code quality gate, Trivy security scanning, and Slack notifications.
+
+---
+
+## Key highlights
+
+- **9-stage pipeline** — every stage blocks on failure, nothing slips through
+- **CVEs reduced from 23 to 0** — switched base image from Debian to Alpine 
+  and patched all vulnerable OS packages before the image ever reached the registry
+- **GitHub webhook triggering** — every push automatically kicks off the full pipeline
+- **Zero secrets in code** — all credentials stored as Jenkins secrets
+- **Full traceability** — images tagged with build number, every deploy is traceable
 
 ---
 
@@ -88,8 +101,7 @@ The script will:
 - Start ngrok and print the public URL
 - Show instructions for updating Jenkins URL and GitHub webhook
 
-**Access Jenkins:**
-http://localhost:8090
+**Access Jenkins:** http://localhost:8090
 
 **Stop everything:**
 ```bash
@@ -135,7 +147,15 @@ docker stop sonarqube
 
 ---
 
-## Planned additions
+## What I learned
 
-- [ ] Harbor self-hosted registry
-- [ ] Pipeline timing metrics dashboard
+- How to build a real multi-stage Jenkins pipeline where every stage 
+  is a quality gate — nothing moves forward unless the previous stage passes
+- How Trivy CVE scanning works in practice — and how switching base 
+  images (Debian → Alpine) eliminates entire categories of vulnerabilities
+- Why SonarQube quality gates matter — catching code smells and security 
+  issues before they ever reach a container
+- How GitHub webhooks trigger Jenkins automatically — the full push-to-deploy loop
+- How to manage secrets properly in Jenkins — credentials store, 
+  never hardcoded, never logged
+- How multi-stage Docker builds reduce final image size and attack surface
